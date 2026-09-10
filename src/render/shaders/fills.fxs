@@ -1,0 +1,37 @@
+// SPDX-License-Identifier: BSD-2-Clause
+
+attribute vec3 place : 0;
+attribute vec3 nudge : 1;
+attribute vec2 texel : 2;
+attribute vec4 tint : 3;
+
+varying vec2 uv;
+varying vec4 shade;
+
+uniform Frame : 0 {
+    mat4 view_projection;
+    vec4 viewport;
+    vec4 near_plane;
+}
+
+texture2d glyphs : 0;
+
+vertex {
+    vec4 clip_position = view_projection * vec4(place, 1.0);
+    if (clip_position.w > 0.0) {
+        vec2 ndc = clip_position.xy / clip_position.w;
+        vec2 pixel = vec2(ndc.x + 1.0, 1.0 - ndc.y * viewport.z) * 0.5 * viewport.xy;
+        if (nudge.z > 0.5) {
+            pixel = floor(pixel + 0.5);
+        }
+        pixel = pixel + nudge.xy;
+        clip_position.xy = vec2(pixel.x / viewport.x * 2.0 - 1.0, (1.0 - pixel.y / viewport.y * 2.0) * viewport.z) * clip_position.w;
+    }
+    uv = texel;
+    shade = tint;
+    position = clip_position;
+}
+
+fragment {
+    target = vec4(shade.rgb, shade.a * sample(glyphs, uv).r);
+}

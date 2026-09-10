@@ -1,0 +1,48 @@
+// SPDX-License-Identifier: BSD-2-Clause
+
+.{
+    .name = .fluxion_debugdraw,
+    .version = "0.1.0",
+    .minimum_zig_version = "0.16.0",
+    .fingerprint = 0x524bb3139223f3fb,
+    .dependencies = .{
+        // Points, matrices and boxes. Pinned to the commit `fluxion-rhi` and
+        // the engine pin: a path here would be a second copy of the package,
+        // and its `Vec3` a different type from theirs.
+        .fluxion_math = .{
+            .url = "git+https://github.com/kisstp2006/fluxion-math#92afdbddbf930369265d24136402c7eb5dd8f70e",
+            .hash = "fluxion_math-0.1.0-dfpZBeNUBAAwUMriLKaOTRBWGFmfY53_jyYuMUxkPYek",
+        },
+
+        // What the `fluxion_debugdraw_rhi` module draws with and writes its
+        // shaders in. Lazy, and asked for only with `-Drenderer`, which is on
+        // unless a consumer turns it off: a program with its own renderer
+        // fetches neither.
+        .fluxion_rhi = .{
+            .path = "../fluxion-rhi",
+            .lazy = true,
+        },
+        .fluxion_shader = .{
+            .path = "../fluxion-shader",
+            .lazy = true,
+        },
+
+        // The window and the PNG the example needs, and nothing else does.
+        .fluxion_platform = .{
+            .path = "../fluxion-platform",
+            .lazy = true,
+        },
+        .fluxion_image = .{
+            .path = "../fluxion-image",
+            .lazy = true,
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "examples",
+        "README.md",
+        "LICENSE",
+    },
+}

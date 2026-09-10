@@ -1,0 +1,75 @@
+// SPDX-License-Identifier: BSD-2-Clause
+
+attribute vec2 corner : 0;
+attribute vec3 start_point : 1;
+attribute vec3 end_point : 2;
+attribute vec4 start_color : 3;
+attribute vec4 end_color : 4;
+attribute float thickness : 5;
+
+varying vec4 shade;
+varying vec4 ribbon;
+varying vec2 extent;
+
+uniform Frame : 0 {
+    mat4 view_projection;
+    vec4 viewport;
+    vec4 near_plane;
+}
+
+vertex {
+    vec4 a = view_projection * vec4(start_point, 1.0);
+    vec4 b = view_projection * vec4(end_point, 1.0);
+
+    // Cut at the near plane first: behind the camera a point has no pixel
+    // to measure a width from.
+    float in_front_a = dot(a, near_plane);
+    float in_front_b = dot(b, near_plane);
+    bool visible = in_front_a >= 0.0 || in_front_b >= 0.0;
+    if (in_front_a < 0.0 && in_front_b >= 0.0) {
+        a = mix(a, b, in_front_a / (in_front_a - in_front_b));
+    }
+    if (in_front_b < 0.0 && in_front_a >= 0.0) {
+        b = mix(b, a, in_front_b / (in_front_b - in_front_a));
+    }
+
+    vec2 half_size = viewport.xy * 0.5;
+    vec2 pixel_a = a.xy / a.w * half_size;
+    vec2 pixel_b = b.xy / b.w * half_size;
+    vec2 span = pixel_b - pixel_a;
+    float span_length = length(span);
+    vec2 along = span_length > 0.0001 ? span / span_length : vec2(1.0, 0.0);
+    vec2 across = vec2(-along.y, along.x);
+
+    float half_width = max(thickness, 0.0) * 0.5;
+    float reach = half_width + 1.0;
+    bool at_end = corner.x > 0.5;
+    float run = at_end ? span_length + reach : -reach;
+    float side = corner.y * reach;
+
+    vec4 clip_position = at_end ? b : a;
+    vec2 pixel = pixel_a + along * run + across * side;
+    clip_position.xy = pixel / half_size * clip_position.w;
+    if (!visible) {
+        clip_position = vec4(0.0, 0.0, 0.0, 1.0);
+    }
+
+    // Multiplied by w and divided again in the fragment stage, so that the
+    // distances come out even across the screen however the line recedes.
+    ribbon = vec4(run * clip_position.w, side * clip_position.w, clip_position.w, 0.0);
+    extent = vec2(span_length, half_width);
+    shade = at_end ? end_color : start_color;
+    position = clip_position;
+}
+
+fragment {
+    float run = ribbon.x / ribbon.z;
+    float side = ribbon.y / ribbon.z;
+    float past = max(max(-run, run - extent.x), 0.0);
+    float away = length(vec2(past, side));
+    float coverage = clamp(extent.y + 0.5 - away, 0.0, 1.0);
+    if (coverage <= 0.0) {
+        discard;
+    }
+    target = vec4(shade.rgb, shade.a * coverage);
+}
