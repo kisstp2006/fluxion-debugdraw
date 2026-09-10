@@ -100,6 +100,10 @@ const lasting = pen.with(.{ .seconds = 2 });   // for two seconds
 - **Time.** `seconds` is how long a shape stays. `canvas.advance(delta)`
   forgets what has had its time, so zero means until the next advance - one
   frame - and `std.math.inf(f32)` means until `canvas.clear()`.
+- **Counting.** `canvas.count(.world)` is how many lines and triangles are on
+  a canvas in one space now; `renderer.stats` is what the last `draw` drew. A
+  frame that reports its own numbers wants the first: the second is a frame
+  late, and nothing at all in the first frame or in a capture.
 
 ## What a pen draws
 

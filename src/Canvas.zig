@@ -121,6 +121,26 @@ pub fn isEmpty(self: *const Canvas) bool {
     return self.runs.items.len == 0;
 }
 
+pub const Count = struct {
+    lines: u32 = 0,
+    triangles: u32 = 0,
+};
+
+/// What is on the canvas in one space as it stands: what the renderer will
+/// draw of it, known before it does. A renderer's own statistics are the
+/// last frame's, and a frame that reports them is one frame late.
+pub fn count(self: *const Canvas, space: Space) Count {
+    var out: Count = .{};
+    for (self.runs.items) |run| {
+        if (run.space != space) continue;
+        switch (run.kind) {
+            .lines => out.lines += run.count,
+            .fills => out.triangles += run.count / 3,
+        }
+    }
+    return out;
+}
+
 pub fn addLine(self: *Canvas, space: Space, depth: Depth, seconds: f32, line: Line) void {
     const first: u32 = @intCast(self.lines.items.len);
     self.lines.append(self.gpa, line) catch return self.drop();
@@ -141,13 +161,13 @@ pub fn addVertices(self: *Canvas, space: Space, depth: Depth, seconds: f32, vert
     };
 }
 
-fn extend(self: *Canvas, kind: Kind, space: Space, depth: Depth, seconds: f32, first: u32, count: u32) Allocator.Error!void {
+fn extend(self: *Canvas, kind: Kind, space: Space, depth: Depth, seconds: f32, first: u32, added: u32) Allocator.Error!void {
     const left = if (seconds > 0) seconds else 0;
     if (self.runs.items.len > 0) {
         const last = &self.runs.items[self.runs.items.len - 1];
         if (last.kind == kind and last.space == space and last.depth == depth and last.left == left) {
             std.debug.assert(last.first + last.count == first);
-            last.count += count;
+            last.count += added;
             return;
         }
     }
@@ -156,7 +176,7 @@ fn extend(self: *Canvas, kind: Kind, space: Space, depth: Depth, seconds: f32, f
         .space = space,
         .depth = depth,
         .first = first,
-        .count = count,
+        .count = added,
         .left = left,
     });
 }
@@ -254,6 +274,24 @@ test "a paused frame still forgets what was drawn for one frame" {
 
     try testing.expectEqual(@as(usize, 1), canvas.lines.items.len);
     try testing.expectEqual(@as(f32, 1), canvas.runs.items[0].left);
+}
+
+test "a canvas counts what is on it, space by space, lasting shapes included" {
+    var canvas: Canvas = .init(testing.allocator);
+    defer canvas.deinit();
+
+    canvas.addLine(.world, .tested, 0, lineAt(0));
+    canvas.addLine(.world, .always, 5, lineAt(1));
+    canvas.addVertices(.world, .tested, 0, &(triangleAt(2) ++ triangleAt(3)));
+    canvas.addLine(.screen, .tested, 0, lineAt(4));
+    canvas.addVertices(.screen, .tested, 0, &triangleAt(5));
+
+    try testing.expectEqual(Count{ .lines = 2, .triangles = 2 }, canvas.count(.world));
+    try testing.expectEqual(Count{ .lines = 1, .triangles = 1 }, canvas.count(.screen));
+
+    canvas.advance(1);
+    try testing.expectEqual(Count{ .lines = 1, .triangles = 0 }, canvas.count(.world));
+    try testing.expectEqual(Count{}, canvas.count(.screen));
 }
 
 test "clearing forgets even what was meant to last" {

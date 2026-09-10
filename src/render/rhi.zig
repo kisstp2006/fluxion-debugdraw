@@ -532,6 +532,31 @@ test "the world is drawn before the screen, and each in the order it was drawn" 
     try testing.expectEqual([3]f32{ 0, 0, 1 }, renderer.lines.items[2].end);
 }
 
+test "what a canvas counts is what the renderer draws of it" {
+    var device = try nothing();
+    defer device.deinit();
+    var renderer: Renderer = try .init(testing.allocator, &device, .{});
+    defer renderer.deinit();
+    var canvas: Canvas = .init(testing.allocator);
+    defer canvas.deinit();
+
+    const pen = canvas.pen();
+    pen.sphere(.zero, 1, .green);
+    pen.with(.{ .seconds = 3 }).solidBox(.init(.zero, .one), .red);
+    pen.text(.zero, "label", .white);
+    pen.screen().print2d(.init(4, 4), "{d} lines", .{canvas.count(.world).lines}, .white);
+    pen.screen().circle2d(.init(30, 30), 10, .white);
+
+    const world = canvas.count(.world);
+    const screen = canvas.count(.screen);
+    const target = try device.createTexture(.{ .width = 64, .height = 64, .usage = .{ .render_target = true } });
+    try renderer.draw(&.{&canvas}, .{ .color = .{ .texture = target } }, screen_view);
+
+    try testing.expectEqual(world.lines + screen.lines, renderer.stats.lines);
+    try testing.expectEqual(world.triangles + screen.triangles, renderer.stats.triangles);
+    try testing.expect(world.lines > 0 and world.triangles > 0 and screen.lines > 0 and screen.triangles > 0);
+}
+
 test "more shapes than the buffers hold grow them" {
     var device = try nothing();
     defer device.deinit();

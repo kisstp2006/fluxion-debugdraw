@@ -33,12 +33,11 @@ const Pen = debugdraw.Pen;
 const background: [4]f32 = .{ 0.055, 0.063, 0.075, 1 };
 const step: f32 = 1.0 / 60.0;
 
-/// What the corner of the screen reports.
+/// What the corner of the screen says besides what is in the world.
 const Info = struct {
     backend: ?rhi.Backend = null,
-    lines: u32 = 0,
-    triangles: u32 = 0,
-    fps: f32 = 0,
+    /// Null in a capture, which has a moment rather than a frame rate.
+    fps: ?f32 = null,
 };
 
 fn viewAt(t: f32, width: f32, height: f32, clip: math.Clip) math.Mat4 {
@@ -108,17 +107,22 @@ fn dropMarks(pen: Pen, from: f32, to: f32) void {
     pen.with(.{ .seconds = 2, .width = 2 }).cross(ballAt(to), 0.5, .yellow);
 }
 
-fn drawOverlay(pen: Pen, t: f32, width: f32, height: f32, info: Info) void {
+fn drawOverlay(pen: Pen, t: f32, width: f32, height: f32, world: Canvas.Count, info: Info) void {
     const hud = pen.screen();
     hud.solidRect2d(.init(12, 12), .init(300, 70), Color.black.withAlpha(0.6));
     hud.rect2d(.init(12, 12), .init(300, 70), Color.white.withAlpha(0.2));
     hud.with(.{ .text_scale = 2 }).text2d(.init(22, 20), "fluxion-debugdraw", .white);
-    if (info.backend) |backend| hud.print2d(.init(22, 48), "on {t}", .{backend}, .gray);
-    if (info.lines > 0) {
-        hud.print2d(.init(22, 62), "{d} lines, {d} triangles, {d:.0} fps", .{ info.lines, info.triangles, info.fps }, .gray);
+    hud.print2d(.init(22, 48), "{d} lines, {d} triangles in the world", .{ world.lines, world.triangles }, .gray);
+
+    var buffer: [64]u8 = undefined;
+    var status: std.Io.Writer = .fixed(&buffer);
+    if (info.backend) |backend| status.print("{t}, ", .{backend}) catch {};
+    if (info.fps) |fps| {
+        status.print("{d:.0} frames a second", .{fps}) catch {};
     } else {
-        hud.text2d(.init(22, 62), "lines, shapes and text, 2D and 3D", .gray);
+        status.print("captured at {d:.2} seconds", .{t}) catch {};
     }
+    hud.text2d(.init(22, 62), status.buffered(), .gray);
 
     const radius = 60;
     const middle: Vec2 = .init(width - radius - 16, height - radius - 16);
@@ -134,10 +138,12 @@ fn drawOverlay(pen: Pen, t: f32, width: f32, height: f32, info: Info) void {
     hud.with(.{ .anchor = .bottom }).text2d(middle.sub(.init(0, radius + 6)), "above", .green);
 }
 
+/// The world first, so the corner can count all of it: this frame's number,
+/// not the renderer's from the frame before - which a capture does not have.
 fn drawFrame(canvas: *Canvas, t: f32, width: f32, height: f32, info: Info) void {
     const pen = canvas.pen();
     drawScene(pen, t);
-    drawOverlay(pen, t, width, height, info);
+    drawOverlay(pen, t, width, height, canvas.count(.world), info);
 }
 
 /// The scene at `at` seconds, into a texture: stepped there a sixtieth at a
@@ -231,7 +237,7 @@ pub fn main(init: std.process.Init) !void {
             .pixels = pixels,
             .row_pitch = @as(usize, options.width) * 4,
         }, .{});
-        try out.print("wrote {s}: {d} lines and {d} triangles in {d} draws\n", .{
+        try out.print("wrote {s}: {d} lines and {d} triangles in {d} draws, the corner's own included\n", .{
             path, renderer.stats.lines, renderer.stats.triangles, renderer.stats.draw_calls,
         });
         return out.flush();
@@ -262,12 +268,7 @@ pub fn main(init: std.process.Init) !void {
 
         const w: f32 = @floatFromInt(window.width);
         const h: f32 = @floatFromInt(window.height);
-        drawFrame(&canvas, t, w, h, .{
-            .backend = options.backend,
-            .lines = renderer.stats.lines,
-            .triangles = renderer.stats.triangles,
-            .fps = fps,
-        });
+        drawFrame(&canvas, t, w, h, .{ .backend = options.backend, .fps = fps });
         try renderer.draw(&.{&canvas}, .{ .color = .{ .surface = surface }, .clear = background }, .{
             .view_projection = viewAt(t, w, h, device.clip()),
             .width = w,
