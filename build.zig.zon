@@ -19,21 +19,25 @@
         // unless a consumer turns it off: a program with its own renderer
         // fetches neither.
         .fluxion_rhi = .{
-            .path = "../fluxion-rhi",
+            .url = "git+https://github.com/kisstp2006/fluxion-rhi#fcacf7bdb59fe17bebba3931457dbc50ce33e554",
+            .hash = "fluxion_rhi-0.1.0--pvwDyreBAD3zimVoEHTTd5BhOtXewjOEF_1D75nhG9o",
             .lazy = true,
         },
         .fluxion_shader = .{
-            .path = "../fluxion-shader",
+            .url = "git+https://github.com/kisstp2006/fluxion-shader#bc1e8ba69ad815f0b3b2a390bf9503f426eda8fc",
+            .hash = "fluxion_shader-0.1.0-FqFMEuiMAwAGGD5JIj6FQ0kr2OC3Z_f1uhrxHuCBT_Ob",
             .lazy = true,
         },
 
         // The window and the PNG the example needs, and nothing else does.
         .fluxion_platform = .{
-            .path = "../fluxion-platform",
+            .url = "git+https://github.com/kisstp2006/fluxion-platform#65f360fa3484c241438def3856c5b48b4a3e8cc9",
+            .hash = "fluxion_platform-0.1.0-WsOjUR1ZFwANXOiIAk3n_vA70LebrBMH_PV2d4GPkjyB",
             .lazy = true,
         },
         .fluxion_image = .{
-            .path = "../fluxion-image",
+            .url = "git+https://github.com/kisstp2006/fluxion-image#79463ef201f11e15ada014467c0ad1d58b2a882d",
+            .hash = "fluxion_image-0.1.0-fyJkdS7vAAB1p43VSutvpxQB32hIcvJb3fGSZbo_qeha",
             .lazy = true,
         },
     },

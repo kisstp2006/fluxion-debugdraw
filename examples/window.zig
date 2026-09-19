@@ -73,6 +73,7 @@ pub const Window = struct {
                 .d3d11 => .d3d11,
                 .none => .none,
                 .webgl => return error.Unsupported,
+                .vulkan => return error.Unsupported,
             },
             .gl = if (self.backend == .gl) .{
                 .context = self.inner,
