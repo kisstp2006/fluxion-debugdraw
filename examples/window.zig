@@ -74,6 +74,8 @@ pub const Window = struct {
                 .none => .none,
                 .webgl => return error.Unsupported,
                 .vulkan => return error.Unsupported,
+                // Made by `Device.initWith`; this glue knows no such backend.
+                .other => return error.Unsupported,
             },
             .gl = if (self.backend == .gl) .{
                 .context = self.inner,
