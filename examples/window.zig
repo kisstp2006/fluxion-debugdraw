@@ -71,6 +71,7 @@ pub const Window = struct {
             .backend = switch (self.backend) {
                 .gl => .gl,
                 .d3d11 => .d3d11,
+                .d3d12 => .d3d12,
                 .none => .none,
                 .webgl => return error.Unsupported,
                 .vulkan => return error.Unsupported,
