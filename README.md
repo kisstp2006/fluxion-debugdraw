@@ -138,7 +138,8 @@ pinned to the commit Fluxion RHI pins, so a `Vec3` here is the same type as a
 `Vec3` there. The renderer module brings Fluxion RHI and
 [Fluxion Shader](https://github.com/kisstp2006/fluxion-shader), which its two
 shaders are written in and compiled by when the renderer is made - GLSL,
-GLSL ES and HLSL from one source each. The example alone uses
+GLSL ES, HLSL and SPIR-V from one source each, all handed to the device, which
+draws with its own. The example alone uses
 [Fluxion Platform](https://github.com/kisstp2006/fluxion-platform) and
 [Fluxion Image](https://github.com/kisstp2006/fluxion-image); every one of
 those is `lazy`.

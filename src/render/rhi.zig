@@ -403,6 +403,7 @@ fn createShader(device: *rhi.Device, module: *const shader.Module, label: []cons
         .glsl = .{ .vertex = module.glsl.vertex, .fragment = module.glsl.fragment },
         .glsl_es = .{ .vertex = module.glsl_es.vertex, .fragment = module.glsl_es.fragment },
         .hlsl = .{ .vertex = module.hlsl.vertex, .fragment = module.hlsl.fragment },
+        .spirv = .{ .vertex = module.spirv.vertex, .fragment = module.spirv.fragment },
         .label = label,
     }) catch |err| {
         complain("{s}: {s}", .{ label, device.diagnostics() });
